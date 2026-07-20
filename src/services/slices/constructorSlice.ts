@@ -18,12 +18,11 @@ const initialState: TConstructorState = {
   error: null
 };
 
-// Асинхронный Thunk для отправки заказа на сервер
 export const createOrder = createAsyncThunk(
   'burgerConstructor/createOrder',
   async (ingredientIds: string[]) => {
     const response = await orderBurgerApi(ingredientIds);
-    return response.order; // Возвращаем созданный заказ
+    return response.order;
   }
 );
 
@@ -31,7 +30,6 @@ const constructorSlice = createSlice({
   name: 'burgerConstructor',
   initialState,
   reducers: {
-    // Добавление ингредиента в конструктор
     addIngredient: {
       reducer: (state, action: PayloadAction<TConstructorIngredient>) => {
         if (action.payload.type === 'bun') {
@@ -41,20 +39,32 @@ const constructorSlice = createSlice({
         }
       },
       prepare: (ingredient: TIngredient) => ({
-        payload: { ...ingredient, id: crypto.randomUUID() } // Генерируем уникальный id для каждого элемента списка
+        payload: { ...ingredient, id: crypto.randomUUID() }
       })
     },
-    // Удаление ингредиента из конструктора
     removeIngredient: (state, action: PayloadAction<string>) => {
       state.ingredients = state.ingredients.filter(
         (item) => item.id !== action.payload
       );
     },
-    // Закрытие модального окна заказа и сброс его данных
+    // НОВЫЙ РЕДЬЮСЕР: Перемещение элементов вверх и вниз
+    moveIngredient: (
+      state,
+      action: PayloadAction<{ index: number; direction: 'up' | 'down' }>
+    ) => {
+      const { index, direction } = action.payload;
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+      // Проверяем границы массива, чтобы не выйти за его пределы
+      if (targetIndex >= 0 && targetIndex < state.ingredients.length) {
+        const temp = state.ingredients[index];
+        state.ingredients[index] = state.ingredients[targetIndex];
+        state.ingredients[targetIndex] = temp;
+      }
+    },
     clearOrderModal: (state) => {
       state.orderModalData = null;
     },
-    // Полная очистка конструктора после успешного заказа
     resetConstructor: (state) => {
       state.bun = null;
       state.ingredients = [];
@@ -68,7 +78,6 @@ const constructorSlice = createSlice({
       })
       .addCase(createOrder.fulfilled, (state, action) => {
         state.orderRequest = false;
-        // Приводим тип к TOrder, чтобы TypeScript не ругался на отсутствие ingredients
         state.orderModalData = action.payload as unknown as TOrder;
       })
       .addCase(createOrder.rejected, (state, action) => {
@@ -78,9 +87,11 @@ const constructorSlice = createSlice({
   }
 });
 
+// Экспортируем новый экшен moveIngredient
 export const {
   addIngredient,
   removeIngredient,
+  moveIngredient,
   clearOrderModal,
   resetConstructor
 } = constructorSlice.actions;
