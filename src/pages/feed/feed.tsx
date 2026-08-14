@@ -1,15 +1,24 @@
-import { Preloader } from '@ui';
 import { FeedUI } from '@ui-pages';
-import { TOrder } from '@utils-types';
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
+import { useDispatch, useSelector } from '../../services/store';
+import { fetchFeedOrders } from '../../services/slices/feedSlice';
 
 export const Feed: FC = () => {
-  /** TODO: взять переменную из стора */
-  const orders: TOrder[] = [];
+  const dispatch = useDispatch();
+  const orders = useSelector((state) => state.feed.orders);
+
+  // Изолированная функция для повторного запроса данных с сервера
+  const handleGetFeeds = () => {
+    dispatch(fetchFeedOrders());
+  };
+
+  useEffect(() => {
+    dispatch(fetchFeedOrders());
+  }, [dispatch]);
 
   if (!orders.length) {
-    return <Preloader />;
+    return null;
   }
 
-  <FeedUI orders={orders} handleGetFeeds={() => {}} />;
+  return <FeedUI orders={orders} handleGetFeeds={handleGetFeeds} />;
 };
